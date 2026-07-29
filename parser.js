@@ -16,11 +16,11 @@
 const CODES = new Set([
     'INI','ACK','REQ','RES','RET','CLR','PAT','MRG','GAP','BRG',
     'ERR','END','IRQ','IRR','SBY','DCL','WRN','HLT','CMT','RPT',
-    'ECH','MIR'
+    'ECH','MIR','OBT'
 ]);
 
-const STATES = new Set(['I','A','W','S','E','P','O','D','N']);
-const INTENTS = new Set(['F','Q','C','S','X','M','D','P','A','N','E']);
+const STATES = new Set(['I','A','W','S','E','P','O','D','N','F']);
+const INTENTS = new Set(['F','Q','C','S','X','M','D','P','A','N','E','U']);
 
 // Guard conditions: code -> recommended state characters
 // These are NOT imperatives. A guard violation = warning, not error.
@@ -48,6 +48,7 @@ const GUARD = {
     RPT: new Set(['W','P','O']),
     ECH: new Set(['A','S','P']),
     MIR: new Set(['A','S','P']),
+    OBT: new Set(['A','S','P','I','N']),
 };
 
 // Regex: trailing dot optional to tolerate live typing
