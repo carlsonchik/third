@@ -21,11 +21,11 @@ from typing import Tuple, List
 CODES = frozenset({
     'INI', 'ACK', 'REQ', 'RES', 'RET', 'CLR', 'PAT', 'MRG', 'GAP', 'BRG',
     'ERR', 'END', 'IRQ', 'IRR', 'SBY', 'DCL', 'WRN', 'HLT', 'CMT', 'RPT',
-    'ECH', 'MIR'
+    'ECH', 'MIR', 'OBT'
 })
 
-STATES = frozenset({'I', 'A', 'W', 'S', 'E', 'P', 'O', 'D', 'N'})
-INTENTS = frozenset({'F', 'Q', 'C', 'S', 'X', 'M', 'D', 'P', 'A', 'N', 'E'})
+STATES = frozenset({'I', 'A', 'W', 'S', 'E', 'P', 'O', 'D', 'N', 'F'})
+INTENTS = frozenset({'F', 'Q', 'C', 'S', 'X', 'M', 'D', 'P', 'A', 'N', 'E', 'U'})
 
 # Guard conditions: code -> recommended state characters
 # These are NOT imperatives. A guard violation = warning, not error.
@@ -53,6 +53,7 @@ GUARD = {
     'RPT': frozenset({'W', 'P', 'O'}),
     'ECH': frozenset({'A', 'S', 'P'}),
     'MIR': frozenset({'A', 'S', 'P'}),
+    'OBT': frozenset({'A', 'S', 'P', 'I', 'N'}),
 }
 
 # Regex: accepts any non-newline data (Cyrillic, mixed, etc.)

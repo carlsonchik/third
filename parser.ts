@@ -35,15 +35,15 @@ export type GuardMap = Record<string, ReadonlySet<string>>;
 const CODES: ReadonlySet<string> = new Set([
   'INI', 'ACK', 'REQ', 'RES', 'RET', 'CLR', 'PAT', 'MRG', 'GAP', 'BRG',
   'ERR', 'END', 'IRQ', 'IRR', 'SBY', 'DCL', 'WRN', 'HLT', 'CMT', 'RPT',
-  'ECH', 'MIR',
+  'ECH', 'MIR', 'OBT',
 ]);
 
 const STATES: ReadonlySet<string> = new Set([
-  'I', 'A', 'W', 'S', 'E', 'P', 'O', 'D', 'N',
+  'I', 'A', 'W', 'S', 'E', 'P', 'O', 'D', 'N', 'F',
 ]);
 
 const INTENTS: ReadonlySet<string> = new Set([
-  'F', 'Q', 'C', 'S', 'X', 'M', 'D', 'P', 'A', 'N', 'E',
+  'F', 'Q', 'C', 'S', 'X', 'M', 'D', 'P', 'A', 'N', 'E', 'U',
 ]);
 
 // Guard conditions: code -> recommended state characters
@@ -71,6 +71,7 @@ const GUARD: GuardMap = {
   RPT: new Set(['W', 'P', 'O']),
   ECH: new Set(['A', 'S', 'P']),
   MIR: new Set(['A', 'S', 'P']),
+  OBT: new Set(['A', 'S', 'P', 'I', 'N']),
 };
 
 // Regex: trailing dot optional to tolerate live typing
