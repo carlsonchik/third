@@ -1,5 +1,5 @@
 /**
- * The Third Protocol v1.2 — Parser & Validator (TypeScript)
+ * The Third Protocol v1.3.2 — Parser & Validator (TypeScript)
  *
  * Guard conditions are recommendations, not imperatives.
  * Guard violations produce WARNINGS, not ERRORS.
@@ -100,7 +100,7 @@ export function parseSignal(text: string): Signal {
 }
 
 /**
- * Validate a parsed signal against v1.2 vocabulary and guard conditions.
+ * Validate a parsed signal against v1.3.2 vocabulary and guard conditions.
  *
  * Guard violations produce WARNINGS, not ERRORS.
  * A signal with warnings but no errors is still VALID.
@@ -210,7 +210,7 @@ function demo(): void {
   ];
 
   console.log('='.repeat(60));
-  console.log('The Third Protocol v1.2 — Parser & Validator Demo (TS)');
+  console.log('The Third Protocol v1.3.2 — Parser & Validator Demo (TS)');
   console.log('='.repeat(60));
 
   for (const ex of examples) {

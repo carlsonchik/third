@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * The Third Protocol v1.2 — Parser & Validator (JavaScript)
+ * The Third Protocol v1.3.2 — Parser & Validator (JavaScript)
  *
  * Guard conditions are recommendations, not imperatives.
  * Guard violations produce WARNINGS, not ERRORS.
@@ -157,7 +157,7 @@ function cli() {
     if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
         console.log(`
 ╔══════════════════════════════════════════════╗
-║  Third Protocol v1.2 — CLI                  ║
+║  Third Protocol v1.3.2 — CLI                  ║
 ╚══════════════════════════════════════════════╝
 
 USAGE:
@@ -210,7 +210,7 @@ EXAMPLES:
         ];
 
         console.log('='.repeat(60));
-        console.log('The Third Protocol v1.2 — Demo');
+        console.log('The Third Protocol v1.3.2 — Demo');
         console.log('='.repeat(60));
 
         for (const ex of examples) {
