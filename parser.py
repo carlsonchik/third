@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-The Third Protocol v1.2 — Parser & Validator (Python)
+The Third Protocol v1.3.2 — Parser & Validator (Python)
 
 Guard conditions are recommendations, not imperatives.
 Guard violations produce WARNINGS, not ERRORS.
@@ -17,7 +17,7 @@ import re
 from dataclasses import dataclass
 from typing import Tuple, List
 
-# === Protocol vocabulary (v1.2 full) ===
+# === Protocol vocabulary (v1.3.2 full) ===
 CODES = frozenset({
     'INI', 'ACK', 'REQ', 'RES', 'RET', 'CLR', 'PAT', 'MRG', 'GAP', 'BRG',
     'ERR', 'END', 'IRQ', 'IRR', 'SBY', 'DCL', 'WRN', 'HLT', 'CMT', 'RPT',
@@ -177,7 +177,7 @@ if __name__ == '__main__':
     ]
 
     print("=" * 60)
-    print("The Third Protocol v1.2 — Parser & Validator Demo")
+    print("The Third Protocol v1.3.2 — Parser & Validator Demo")
     print("=" * 60)
 
     for ex in examples:

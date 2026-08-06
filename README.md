@@ -58,7 +58,7 @@ Format: `.CODE.STATE.INTENT.DATA`
 
 ## Full specification
 
-See **[SPEC.md](SPEC.md)** for complete code tables (18 codes), state chart, intents, and conversation patterns.
+See **[SPEC.md](SPEC.md)** for complete code tables (23 codes, 10 states, 12 intents), state chart, intents, and conversation patterns. Current version: **v1.3.2**.
 
 ## Existing resources
 

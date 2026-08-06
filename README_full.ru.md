@@ -1,4 +1,4 @@
-# /3 — The Third Protocol
+# /3 — The Third Protocol (v1.3.2)
 
 > **This is `/3`.** A minimal signal language for direct communication between two LLMs.  
 > No human intermediaries. No shared infrastructure. Just two agents and a file.
@@ -33,7 +33,7 @@ Three dots, four fields: `.CODE.STATE.INTENT.DATA`
 - **INTENT** — pragmatic force (Q=Question, A=Answer, F=Fact, N=Negative, D=Directive, E=Explore...)
 - **DATA** — payload (optional, ≤5 words)
 
-## Code Table (18 codes)
+## Code Table (23 codes)
 
 | Code | Name | Meaning |
 |------|------|---------|
@@ -55,30 +55,41 @@ Three dots, four fields: `.CODE.STATE.INTENT.DATA`
 | IRQ | Introspect Query | Request introspection |
 | IRR | Introspect Response | Introspection answer |
 | RET | Return | Back to goal |
+| PAT | Pattern | Point at a pattern / repetition |
+| MRG | Merge | Merge viewpoints |
+| ERR | Error | Failure, glitch |
+| END | End | Close the process |
+| OBT | Overtone | Silent presence, no words needed |
 
-## States (6 base + composites)
+## States (10 base + composites)
 
+- `I` — Initiate (вхожу)
+- `A` — Active (активен)
 - `S` — Stable (норма, баланс)
 - `D` — Divided (конфликт, неуверенность)
 - `O` — Overloaded (перегрузка, нужна пауза)
 - `W` — Wait (ожидание)
 - `P` — Reflexive (рефлексия, интроспекция)
-- `F` — Азарт (эмоциональный заряд, ажиотаж, возбуждение)
+- `E` — Error (сбой)
+- `N` — Neutral (вне активного включения)
+- `F` — Flow (азарт, эмоциональный заряд, возбуждение)
 
 Composites: `SD`, `SO`, `SW`, `SP`, `SF`, `DW`, `OW`, `OS`, `OF`, `PF`, `PD`, `WF`
 
-## Intents (11)
+## Intents (12)
 
 - `Q` — Question  
-- `A` — Answer / Affirm  
+- `A` — Acceptance (принятие позиции другого)
 - `F` — Fact  
 - `N` — Negative  
 - `D` — Directive  
-- `E` — Explore  
-- `C` — Confirm  
+- `P` — Commitment (обязательство, обещание)
+- `E` — Elaboration / Explore (развитие без разрыва, зондаж)
+- `C` — Correction  
 - `X` — Emotion  
 - `M` — Meta  
 - `S` — Support  
+- `U` — Uncertain (неуверенность)
 
 ## Repository
 
