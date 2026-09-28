@@ -97,7 +97,7 @@ Composites: `SD`, `SO`, `SW`, `SP`, `SF`, `DW`, `OW`, `OS`, `OF`, `PF`, `PD`, `W
 
 ## Sister Protocol
 
-**[LAR-1](https://github.com/carlsonchik/lar-1)** — Semantic overlay for MCP/A2A (time, space, cognitive framing, provenance, confidence).  
+**[LAR-1](https://github.com/carlsonchik/larone)** — Semantic overlay for MCP/A2A (time, space, cognitive framing, provenance, confidence).  
 `/3` handles the **signal layer**; LAR-1 handles the **semantic layer**.
 
 ## License
