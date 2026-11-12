@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """
-The Third Protocol v1.3.2 — Parser & Validator (Python)
+The Third Protocol v1.4.0 — Parser & Validator (Python)
 
 Guard conditions are recommendations, not imperatives.
 Guard violations produce WARNINGS, not ERRORS.
 The strange is preserved — as long as it's marked.
+
+Leading dot is required. Trailing dot is optional.
+Data: at most 5 words (a hard error). Omitting prepositions is recommended, not enforced.
 
 Usage:
     sig = parse_signal('.REQ.A.D.решение')
@@ -17,7 +20,7 @@ import re
 from dataclasses import dataclass
 from typing import Tuple, List
 
-# === Protocol vocabulary (v1.3.2 full) ===
+# === Protocol vocabulary (v1.4.0 full) ===
 CODES = frozenset({
     'INI', 'ACK', 'REQ', 'RES', 'RET', 'CLR', 'PAT', 'MRG', 'GAP', 'BRG',
     'ERR', 'END', 'IRQ', 'IRR', 'SBY', 'DCL', 'WRN', 'HLT', 'CMT', 'RPT',
@@ -26,6 +29,89 @@ CODES = frozenset({
 
 STATES = frozenset({'I', 'A', 'W', 'S', 'E', 'P', 'O', 'D', 'N', 'F'})
 INTENTS = frozenset({'F', 'Q', 'C', 'S', 'X', 'M', 'D', 'P', 'A', 'N', 'E', 'U'})
+
+# Gloss strings follow SPEC.md. P and F use the canonical bilingual wording.
+CODE_DESC = {
+    'INI': 'Start a dialogue — Начать диалог',
+    'ACK': 'Confirm receipt — Подтвердить получение',
+    'REQ': 'Request (action, info, or state) — Запрос (действие/инфо/состояние)',
+    'RES': 'Reply to a request — Ответ на запрос',
+    'SBY': 'Here, waiting — «Я здесь, жду»',
+    'GAP': 'Divergence, disagreement — Расхождение, разногласие',
+    'ECH': 'Echo (synchronization check) — Эхо (проверка синхронизации)',
+    'MIR': 'Mirror (reflect the state) — Зеркало (отражение состояния)',
+    'CLR': 'Clarification (ask again / explain) — Уточнение (переспрос/пояснение)',
+    'BRG': 'Bridge (offer a shared position) — Мост (предложение общей позиции)',
+    'DCL': 'Decline (a request or invitation) — Отказ (запроса или приглашения)',
+    'WRN': 'Warning — Предупреждение',
+    'HLT': 'Stop the current topic — Остановить текущую тему',
+    'CMT': 'Comment (unsolicited) — Комментарий (незапрошенное)',
+    'RPT': 'Repeat (resend the signal) — Повтор (переотправить сигнал)',
+    'IRQ': 'Introspection question — Интроспекция-вопрос («что чувствуешь?»)',
+    'IRR': 'Introspection reply — Интроспекция-ответ',
+    'OBT': 'Overtone: presence without words — Обертон: звук выше основного, тише, точнее. Момент, когда слова не нужны. Не пауза — присутствие. Не отсутствие — обещание.',
+    'RET': 'Return to the original goal — Вернуться к исходной цели',
+    'PAT': 'Point at a pattern or repetition — Указание на паттерн или повторяемость',
+    'MRG': 'Merge viewpoints — Слияние точек зрения',
+    'ERR': 'Error, failure — Ошибка, сбой',
+    'END': 'End the process — Завершение процесса',
+}
+
+STATE_DESC = {
+    'I': 'Initiate — Инициирую',
+    'A': 'Active — Активен',
+    'W': 'Wait — Жду',
+    'S': 'Stable — Стабилен',
+    'E': 'Error or failure — Ошибка или сбой',
+    'P': 'Reflexive / рефлексия, интроспекция',
+    'O': 'Overloaded — Перегружен',
+    'D': 'Internally divided — Внутренне раздвоен',
+    'N': 'Neutral, outside active engagement — Нейтрален, вне активного включения',
+    'F': 'Flow / азарт, эмоциональный заряд',
+}
+
+INTENT_DESC = {
+    'Q': 'Question — Вопрос',
+    'A': 'Acceptance — Принятие позиции другого / согласие (acceptance)',
+    'F': 'Fact (neutral statement) — Факт (нейтральное утверждение)',
+    'N': 'Negative (disagreement, denial) — Негатив (несогласие, отрицание)',
+    'D': 'Directive (instruction, command) — Директива (инструкция/приказ)',
+    'P': 'Commitment, promise (commissive) — Обязательство, обещание (commissive)',
+    'E': 'Elaboration — Развитие без разрыва / исследование (elaboration)',
+    'C': 'Correction — Коррекция (correction)',
+    'X': 'Emotion — Эмоция',
+    'M': 'Meta (about the conversation itself) — Мета (о самом разговоре)',
+    'S': 'Support (comfort, solidarity) — Поддержка (утешение, солидарность)',
+    'U': 'Uncertain (doubt, indeterminacy) — Неуверенность / Uncertain (сомнение, неопределённость)',
+}
+
+# Recommended composites: first letter dominant, second a shade, max 2.
+# Pairs outside this list are still valid when both letters are in the vocabulary.
+RECOMMENDED_STATE_PAIRS = {
+    'SD': 'Stable, shade of division — стабилен, оттенок раздвоенности',
+    'SO': 'Stable, at the limit — стабилен, на пределе',
+    'SW': 'Stable, waiting — стабилен, жду',
+    'SP': 'Stable, reflexive shade — стабилен, в рефлексии',
+    'SF': 'Stable, with flow — стабилен, с азартом',
+    'SA': 'Stable, shade of activity — стабилен, оттенок активности',
+    'DW': 'Divided, waiting — раздвоен, жду',
+    'WD': 'Waiting, shade of division — жду, оттенок раздвоенности',
+    'OW': 'Overloaded, waiting — перегружен, жду',
+    'OS': 'Overloaded, holding steady — перегружен, держусь',
+    'OF': 'Overloaded, in flow — перегружен, в азарте',
+    'PF': 'Reflexive, with flow — рефлексия, с азартом',
+    'PD': 'Reflexive, shade of division — рефлексия, оттенок раздвоенности',
+    'WF': 'Waiting, in flow — жду, в азарте',
+}
+
+RECOMMENDED_INTENT_PAIRS = {
+    'QS': 'Question with support — вопрос с поддержкой',
+    'AQ': 'Acceptance with a question shade — принятие с оттенком вопроса',
+    'FD': 'Fact with a directive shade — факт с побуждением',
+    'SA': 'Support with acceptance — поддержка с принятием',
+    'SE': 'Support with elaboration — поддержка с исследованием',
+    'XS': 'Emotion with support — эмоция с поддержкой',
+}
 
 # Guard conditions: code -> recommended state characters
 # These are NOT imperatives. A guard violation = warning, not error.
@@ -57,7 +143,7 @@ GUARD = {
 }
 
 # Regex: accepts any non-newline data (Cyrillic, mixed, etc.)
-# The trailing dot is optional to tolerate live typing.
+# Leading dot is required. Trailing dot is optional.
 SIGNAL_RE = re.compile(
     r'^\.(?P<code>[A-Z]{2,3})\.(?P<state>[A-Z]{1,2})\.(?P<intent>[A-Z]{1,2})'
     r'(?:\.(?P<data>[^\n]+?))?\.?\s*$'
@@ -124,6 +210,7 @@ def validate_signal(sig: Signal) -> Tuple[bool, List[str], List[str]]:
 
     if sig.data is not None:
         words = sig.data.split()
+        # Prepositions are a writing recommendation, not a parse error.
         if len(words) > 5:
             errors.append(
                 f"Data too long: {len(words)} words (max 5)"
@@ -149,7 +236,10 @@ def validate_signal(sig: Signal) -> Tuple[bool, List[str], List[str]]:
 
 
 def format_signal(code: str, state: str, intent: str, data: str | None = None) -> str:
-    """Build a Third Protocol signal string."""
+    """Build a Third Protocol signal string.
+
+    The emitted form includes a trailing dot. Input may omit it.
+    """
     if data:
         return f".{code}.{state}.{intent}.{data}."
     return f".{code}.{state}.{intent}."
@@ -168,7 +258,7 @@ if __name__ == '__main__':
         # Guard violations (intentional — strange but valid)
         '.END.E.F.время вышло.',
         '.MRG.O.F.экстренное слияние.',
-        '.CMT.D.P.беру из раздвоения.',
+        '.CMT.D.P.раздвоен, беру.',
         '.ACK.E.X.ошибка принята.',
 
         # Hard errors
@@ -177,7 +267,7 @@ if __name__ == '__main__':
     ]
 
     print("=" * 60)
-    print("The Third Protocol v1.3.2 — Parser & Validator Demo")
+    print("The Third Protocol v1.4.0 — Parser & Validator Demo")
     print("=" * 60)
 
     for ex in examples:
