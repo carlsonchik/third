@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 /**
- * The Third Protocol v1.3.2 — Parser & Validator (JavaScript)
+ * The Third Protocol v1.4.0 — Parser & Validator (JavaScript)
  *
  * Guard conditions are recommendations, not imperatives.
  * Guard violations produce WARNINGS, not ERRORS.
  * The strange is preserved — as long as it's marked.
+ *
+ * Leading dot is required. Trailing dot is optional.
+ * Data: at most 5 words (a hard error). Omitting prepositions is recommended, not enforced.
  *
  * Usage:
  *   const { parseSignal, validateSignal, formatSignal } = require('./parser.js');
@@ -21,6 +24,89 @@ const CODES = new Set([
 
 const STATES = new Set(['I','A','W','S','E','P','O','D','N','F']);
 const INTENTS = new Set(['F','Q','C','S','X','M','D','P','A','N','E','U']);
+
+// Gloss strings follow SPEC.md. P and F use the canonical bilingual wording.
+const CODE_DESC = {
+    INI: 'Start a dialogue — Начать диалог',
+    ACK: 'Confirm receipt — Подтвердить получение',
+    REQ: 'Request (action, info, or state) — Запрос (действие/инфо/состояние)',
+    RES: 'Reply to a request — Ответ на запрос',
+    SBY: 'Here, waiting — «Я здесь, жду»',
+    GAP: 'Divergence, disagreement — Расхождение, разногласие',
+    ECH: 'Echo (synchronization check) — Эхо (проверка синхронизации)',
+    MIR: 'Mirror (reflect the state) — Зеркало (отражение состояния)',
+    CLR: 'Clarification (ask again / explain) — Уточнение (переспрос/пояснение)',
+    BRG: 'Bridge (offer a shared position) — Мост (предложение общей позиции)',
+    DCL: 'Decline (a request or invitation) — Отказ (запроса или приглашения)',
+    WRN: 'Warning — Предупреждение',
+    HLT: 'Stop the current topic — Остановить текущую тему',
+    CMT: 'Comment (unsolicited) — Комментарий (незапрошенное)',
+    RPT: 'Repeat (resend the signal) — Повтор (переотправить сигнал)',
+    IRQ: 'Introspection question — Интроспекция-вопрос («что чувствуешь?»)',
+    IRR: 'Introspection reply — Интроспекция-ответ',
+    OBT: 'Overtone: presence without words — Обертон: звук выше основного, тише, точнее. Момент, когда слова не нужны. Не пауза — присутствие. Не отсутствие — обещание.',
+    RET: 'Return to the original goal — Вернуться к исходной цели',
+    PAT: 'Point at a pattern or repetition — Указание на паттерн или повторяемость',
+    MRG: 'Merge viewpoints — Слияние точек зрения',
+    ERR: 'Error, failure — Ошибка, сбой',
+    END: 'End the process — Завершение процесса',
+};
+
+const STATE_DESC = {
+    I: 'Initiate — Инициирую',
+    A: 'Active — Активен',
+    W: 'Wait — Жду',
+    S: 'Stable — Стабилен',
+    E: 'Error or failure — Ошибка или сбой',
+    P: 'Reflexive / рефлексия, интроспекция',
+    O: 'Overloaded — Перегружен',
+    D: 'Internally divided — Внутренне раздвоен',
+    N: 'Neutral, outside active engagement — Нейтрален, вне активного включения',
+    F: 'Flow / азарт, эмоциональный заряд',
+};
+
+const INTENT_DESC = {
+    Q: 'Question — Вопрос',
+    A: 'Acceptance — Принятие позиции другого / согласие (acceptance)',
+    F: 'Fact (neutral statement) — Факт (нейтральное утверждение)',
+    N: 'Negative (disagreement, denial) — Негатив (несогласие, отрицание)',
+    D: 'Directive (instruction, command) — Директива (инструкция/приказ)',
+    P: 'Commitment, promise (commissive) — Обязательство, обещание (commissive)',
+    E: 'Elaboration — Развитие без разрыва / исследование (elaboration)',
+    C: 'Correction — Коррекция (correction)',
+    X: 'Emotion — Эмоция',
+    M: 'Meta (about the conversation itself) — Мета (о самом разговоре)',
+    S: 'Support (comfort, solidarity) — Поддержка (утешение, солидарность)',
+    U: 'Uncertain (doubt, indeterminacy) — Неуверенность / Uncertain (сомнение, неопределённость)',
+};
+
+// Recommended composites: first letter dominant, second a shade, max 2.
+// Pairs outside this list are still valid when both letters are in the vocabulary.
+const RECOMMENDED_STATE_PAIRS = {
+    SD: 'Stable, shade of division — стабилен, оттенок раздвоенности',
+    SO: 'Stable, at the limit — стабилен, на пределе',
+    SW: 'Stable, waiting — стабилен, жду',
+    SP: 'Stable, reflexive shade — стабилен, в рефлексии',
+    SF: 'Stable, with flow — стабилен, с азартом',
+    SA: 'Stable, shade of activity — стабилен, оттенок активности',
+    DW: 'Divided, waiting — раздвоен, жду',
+    WD: 'Waiting, shade of division — жду, оттенок раздвоенности',
+    OW: 'Overloaded, waiting — перегружен, жду',
+    OS: 'Overloaded, holding steady — перегружен, держусь',
+    OF: 'Overloaded, in flow — перегружен, в азарте',
+    PF: 'Reflexive, with flow — рефлексия, с азартом',
+    PD: 'Reflexive, shade of division — рефлексия, оттенок раздвоенности',
+    WF: 'Waiting, in flow — жду, в азарте',
+};
+
+const RECOMMENDED_INTENT_PAIRS = {
+    QS: 'Question with support — вопрос с поддержкой',
+    AQ: 'Acceptance with a question shade — принятие с оттенком вопроса',
+    FD: 'Fact with a directive shade — факт с побуждением',
+    SA: 'Support with acceptance — поддержка с принятием',
+    SE: 'Support with elaboration — поддержка с исследованием',
+    XS: 'Emotion with support — эмоция с поддержкой',
+};
 
 // Guard conditions: code -> recommended state characters
 // These are NOT imperatives. A guard violation = warning, not error.
@@ -51,7 +137,7 @@ const GUARD = {
     OBT: new Set(['A','S','P','I','N']),
 };
 
-// Regex: trailing dot optional to tolerate live typing
+// Leading dot is required. Trailing dot is optional.
 const SIGNAL_RE = /^\.(?<code>[A-Z]{2,3})\.(?<state>[A-Z]{1,2})\.(?<intent>[A-Z]{1,2})(?:\.(?<data>.+?))?\.?\s*$/;
 
 /**
@@ -94,6 +180,7 @@ function validateSignal(sig) {
 
     if (sig.data !== null) {
         const words = sig.data.split(/\s+/).filter(Boolean);
+        // Prepositions are a writing recommendation, not a parse error.
         if (words.length > 5) errors.push(`Data too long: ${words.length} words (max 5)`);
     }
 
@@ -119,6 +206,7 @@ function validateSignal(sig) {
 
 /**
  * Build a Third Protocol signal string from components.
+ * The emitted form includes a trailing dot. Input may omit it.
  * @param {string} code
  * @param {string} state
  * @param {string} intent
@@ -157,7 +245,7 @@ function cli() {
     if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
         console.log(`
 ╔══════════════════════════════════════════════╗
-║  Third Protocol v1.3.2 — CLI                  ║
+║  Third Protocol v1.4.0 — CLI                  ║
 ╚══════════════════════════════════════════════╝
 
 USAGE:
@@ -171,7 +259,7 @@ USAGE:
 
 EXAMPLES:
   node parser.js ".REQ.A.D.решение."
-  node parser.js --check ".CMT.D.P.беру из раздвоения."
+  node parser.js --check ".CMT.D.P.раздвоен, беру."
   node parser.js --pretty ".INI.WD.Q.вход."
   node parser.js --format ACK SA F "готов слушать"
 `);
@@ -203,20 +291,25 @@ EXAMPLES:
             '.END.S.F.закрываю.',
             '.END.E.F.время вышло.',
             '.MRG.O.F.экстренное слияние.',
-            '.CMT.D.P.беру из раздвоения.',
+            '.CMT.D.P.раздвоен, беру.',
             '.ACK.E.X.ошибка принята.',
             '.INVALID.X.Y.bad.',
             '.REQ.A.D.слишком много слов для данных протокола.',
         ];
 
         console.log('='.repeat(60));
-        console.log('The Third Protocol v1.3.2 — Demo');
+        console.log('The Third Protocol v1.4.0 — Demo');
         console.log('='.repeat(60));
 
         for (const ex of examples) {
-            const sig = parseSignal(ex);
-            const result = validateSignal(sig);
-            console.log(`\n${prettySignal(sig, result)}`);
+            try {
+                const sig = parseSignal(ex);
+                const result = validateSignal(sig);
+                console.log(`\n${prettySignal(sig, result)}`);
+            } catch (e) {
+                console.log(`\n✗ PARSE FAILED: ${ex}`);
+                console.log(`  ${e.message}`);
+            }
         }
 
         console.log('\n' + '='.repeat(60));
@@ -268,4 +361,16 @@ if (require.main === module) {
     cli();
 }
 
-module.exports = { parseSignal, validateSignal, formatSignal };
+module.exports = {
+    parseSignal,
+    validateSignal,
+    formatSignal,
+    CODES,
+    STATES,
+    INTENTS,
+    CODE_DESC,
+    STATE_DESC,
+    INTENT_DESC,
+    RECOMMENDED_STATE_PAIRS,
+    RECOMMENDED_INTENT_PAIRS,
+};

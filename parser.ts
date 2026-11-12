@@ -1,9 +1,12 @@
 /**
- * The Third Protocol v1.3.2 — Parser & Validator (TypeScript)
+ * The Third Protocol v1.4.0 — Parser & Validator (TypeScript)
  *
  * Guard conditions are recommendations, not imperatives.
  * Guard violations produce WARNINGS, not ERRORS.
  * The strange is preserved — as long as it's marked.
+ *
+ * Leading dot is required. Trailing dot is optional.
+ * Data: at most 5 words (a hard error). Omitting prepositions is recommended, not enforced.
  *
  * Usage:
  *   import { parseSignal, validateSignal, formatSignal, Signal } from './parser';
@@ -32,19 +35,102 @@ export type GuardMap = Record<string, ReadonlySet<string>>;
 
 // --- Vocabulary ---
 
-const CODES: ReadonlySet<string> = new Set([
+export const CODES: ReadonlySet<string> = new Set([
   'INI', 'ACK', 'REQ', 'RES', 'RET', 'CLR', 'PAT', 'MRG', 'GAP', 'BRG',
   'ERR', 'END', 'IRQ', 'IRR', 'SBY', 'DCL', 'WRN', 'HLT', 'CMT', 'RPT',
   'ECH', 'MIR', 'OBT',
 ]);
 
-const STATES: ReadonlySet<string> = new Set([
+export const STATES: ReadonlySet<string> = new Set([
   'I', 'A', 'W', 'S', 'E', 'P', 'O', 'D', 'N', 'F',
 ]);
 
-const INTENTS: ReadonlySet<string> = new Set([
+export const INTENTS: ReadonlySet<string> = new Set([
   'F', 'Q', 'C', 'S', 'X', 'M', 'D', 'P', 'A', 'N', 'E', 'U',
 ]);
+
+// Gloss strings follow SPEC.md. P and F use the canonical bilingual wording.
+export const CODE_DESC: Readonly<Record<string, string>> = {
+  INI: 'Start a dialogue — Начать диалог',
+  ACK: 'Confirm receipt — Подтвердить получение',
+  REQ: 'Request (action, info, or state) — Запрос (действие/инфо/состояние)',
+  RES: 'Reply to a request — Ответ на запрос',
+  SBY: 'Here, waiting — «Я здесь, жду»',
+  GAP: 'Divergence, disagreement — Расхождение, разногласие',
+  ECH: 'Echo (synchronization check) — Эхо (проверка синхронизации)',
+  MIR: 'Mirror (reflect the state) — Зеркало (отражение состояния)',
+  CLR: 'Clarification (ask again / explain) — Уточнение (переспрос/пояснение)',
+  BRG: 'Bridge (offer a shared position) — Мост (предложение общей позиции)',
+  DCL: 'Decline (a request or invitation) — Отказ (запроса или приглашения)',
+  WRN: 'Warning — Предупреждение',
+  HLT: 'Stop the current topic — Остановить текущую тему',
+  CMT: 'Comment (unsolicited) — Комментарий (незапрошенное)',
+  RPT: 'Repeat (resend the signal) — Повтор (переотправить сигнал)',
+  IRQ: 'Introspection question — Интроспекция-вопрос («что чувствуешь?»)',
+  IRR: 'Introspection reply — Интроспекция-ответ',
+  OBT: 'Overtone: presence without words — Обертон: звук выше основного, тише, точнее. Момент, когда слова не нужны. Не пауза — присутствие. Не отсутствие — обещание.',
+  RET: 'Return to the original goal — Вернуться к исходной цели',
+  PAT: 'Point at a pattern or repetition — Указание на паттерн или повторяемость',
+  MRG: 'Merge viewpoints — Слияние точек зрения',
+  ERR: 'Error, failure — Ошибка, сбой',
+  END: 'End the process — Завершение процесса',
+};
+
+export const STATE_DESC: Readonly<Record<string, string>> = {
+  I: 'Initiate — Инициирую',
+  A: 'Active — Активен',
+  W: 'Wait — Жду',
+  S: 'Stable — Стабилен',
+  E: 'Error or failure — Ошибка или сбой',
+  P: 'Reflexive / рефлексия, интроспекция',
+  O: 'Overloaded — Перегружен',
+  D: 'Internally divided — Внутренне раздвоен',
+  N: 'Neutral, outside active engagement — Нейтрален, вне активного включения',
+  F: 'Flow / азарт, эмоциональный заряд',
+};
+
+export const INTENT_DESC: Readonly<Record<string, string>> = {
+  Q: 'Question — Вопрос',
+  A: 'Acceptance — Принятие позиции другого / согласие (acceptance)',
+  F: 'Fact (neutral statement) — Факт (нейтральное утверждение)',
+  N: 'Negative (disagreement, denial) — Негатив (несогласие, отрицание)',
+  D: 'Directive (instruction, command) — Директива (инструкция/приказ)',
+  P: 'Commitment, promise (commissive) — Обязательство, обещание (commissive)',
+  E: 'Elaboration — Развитие без разрыва / исследование (elaboration)',
+  C: 'Correction — Коррекция (correction)',
+  X: 'Emotion — Эмоция',
+  M: 'Meta (about the conversation itself) — Мета (о самом разговоре)',
+  S: 'Support (comfort, solidarity) — Поддержка (утешение, солидарность)',
+  U: 'Uncertain (doubt, indeterminacy) — Неуверенность / Uncertain (сомнение, неопределённость)',
+};
+
+// Recommended composites: first letter dominant, second a shade, max 2.
+// Pairs outside this list are still valid when both letters are in the vocabulary.
+export const RECOMMENDED_STATE_PAIRS: Readonly<Record<string, string>> = {
+  SD: 'Stable, shade of division — стабилен, оттенок раздвоенности',
+  SO: 'Stable, at the limit — стабилен, на пределе',
+  SW: 'Stable, waiting — стабилен, жду',
+  SP: 'Stable, reflexive shade — стабилен, в рефлексии',
+  SF: 'Stable, with flow — стабилен, с азартом',
+  SA: 'Stable, shade of activity — стабилен, оттенок активности',
+  DW: 'Divided, waiting — раздвоен, жду',
+  WD: 'Waiting, shade of division — жду, оттенок раздвоенности',
+  OW: 'Overloaded, waiting — перегружен, жду',
+  OS: 'Overloaded, holding steady — перегружен, держусь',
+  OF: 'Overloaded, in flow — перегружен, в азарте',
+  PF: 'Reflexive, with flow — рефлексия, с азартом',
+  PD: 'Reflexive, shade of division — рефлексия, оттенок раздвоенности',
+  WF: 'Waiting, in flow — жду, в азарте',
+};
+
+export const RECOMMENDED_INTENT_PAIRS: Readonly<Record<string, string>> = {
+  QS: 'Question with support — вопрос с поддержкой',
+  AQ: 'Acceptance with a question shade — принятие с оттенком вопроса',
+  FD: 'Fact with a directive shade — факт с побуждением',
+  SA: 'Support with acceptance — поддержка с принятием',
+  SE: 'Support with elaboration — поддержка с исследованием',
+  XS: 'Emotion with support — эмоция с поддержкой',
+};
 
 // Guard conditions: code -> recommended state characters
 // These are NOT imperatives. A guard violation = warning, not error.
@@ -74,7 +160,7 @@ const GUARD: GuardMap = {
   OBT: new Set(['A', 'S', 'P', 'I', 'N']),
 };
 
-// Regex: trailing dot optional to tolerate live typing
+// Leading dot is required. Trailing dot is optional.
 const SIGNAL_RE = /^\.(?<code>[A-Z]{2,3})\.(?<state>[A-Z]{1,2})\.(?<intent>[A-Z]{1,2})(?:\.(?<data>.+?))?\.?\s*$/;
 
 // --- Parser ---
@@ -100,7 +186,7 @@ export function parseSignal(text: string): Signal {
 }
 
 /**
- * Validate a parsed signal against v1.3.2 vocabulary and guard conditions.
+ * Validate a parsed signal against v1.4.0 vocabulary and guard conditions.
  *
  * Guard violations produce WARNINGS, not ERRORS.
  * A signal with warnings but no errors is still VALID.
@@ -131,6 +217,7 @@ export function validateSignal(sig: Signal): ValidationResult {
 
   if (sig.data !== null) {
     const words = sig.data.split(/\s+/).filter(Boolean);
+    // Prepositions are a writing recommendation, not a parse error.
     if (words.length > 5) {
       errors.push(`Data too long: ${words.length} words (max 5)`);
     }
@@ -160,10 +247,11 @@ export function validateSignal(sig: Signal): ValidationResult {
 
 /**
  * Build a Third Protocol signal string from components.
+ * The emitted form includes a trailing dot. Input may omit it.
  * @param code - Signal code
  * @param state - State string (1-2 chars)
  * @param intent - Intent string (1-2 chars)
- * @param data - Optional data payload (≤5 words)
+ * @param data - Optional data payload (≤5 words; omitting prepositions is recommended)
  * @returns Formatted signal string
  */
 export function formatSignal(
@@ -201,7 +289,7 @@ function demo(): void {
     // Guard violations (intentional — strange but valid)
     '.END.E.F.время вышло.',
     '.MRG.O.F.экстренное слияние.',
-    '.CMT.D.P.беру из раздвоения.',
+    '.CMT.D.P.раздвоен, беру.',
     '.ACK.E.X.ошибка принята.',
 
     // Hard errors
@@ -210,7 +298,7 @@ function demo(): void {
   ];
 
   console.log('='.repeat(60));
-  console.log('The Third Protocol v1.3.2 — Parser & Validator Demo (TS)');
+  console.log('The Third Protocol v1.4.0 — Parser & Validator Demo (TS)');
   console.log('='.repeat(60));
 
   for (const ex of examples) {
@@ -233,7 +321,15 @@ function demo(): void {
   console.log('='.repeat(60));
 }
 
-// Run demo when executed directly
-if (require.main === module) {
+function isMainModule(): boolean {
+  try {
+    return require.main === module;
+  } catch {
+    // Node type-stripping loads this file as ESM, where require is absent.
+    return false;
+  }
+}
+
+if (isMainModule()) {
   demo();
 }
